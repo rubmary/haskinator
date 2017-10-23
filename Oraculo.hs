@@ -1,3 +1,4 @@
+module Oraculo where
 import Data.Map as M
 
 type Opciones = Map String Oraculo
@@ -21,11 +22,11 @@ opciones _ = error "No es una pregunta."
 
 respuesta :: Oraculo -> String -> Oraculo
 respuesta (Pregunta _ opciones) key =
-	case (M.lookup key opciones) of
+    case (M.lookup key opciones) of
         Just r -> r
         Nothing -> error "No es una respuesta válida."
 respuesta _ _ = error "No es una pregunta."
 
 ramificar :: [String] -> [Oraculo] -> String -> Oraculo
 ramificar opciones oraculos pregunta =
-	Pregunta pregunta (fromList (zip opciones oraculos))
+    Pregunta pregunta (fromList (zip opciones oraculos))
