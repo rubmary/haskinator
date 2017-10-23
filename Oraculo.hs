@@ -16,11 +16,16 @@ pregunta (Pregunta s _) = s
 pregunta _ = error "No es una pregunta."
 
 opciones :: Oraculo -> Opciones
-opciones (Pregunta _ os) = os
+opciones (Pregunta _ opciones) = opciones
 opciones _ = error "No es una pregunta."
 
 respuesta :: Oraculo -> String -> Oraculo
-respuesta (Pregunta _ os) s = case (M.lookup s os) of
-                                Just r -> r
-                                Nothing -> error "No es una respuesta válida."
+respuesta (Pregunta _ opciones) key =
+	case (M.lookup key opciones) of
+        Just r -> r
+        Nothing -> error "No es una respuesta válida."
 respuesta _ _ = error "No es una pregunta."
+
+ramificar :: [String] -> [Oraculo] -> String -> Oraculo
+ramificar opciones oraculos pregunta =
+	Pregunta pregunta (fromList (zip opciones oraculos))
