@@ -15,22 +15,22 @@ obtenerRespuestaValida opciones = do
             obtenerRespuestaValida opciones
 
 
-pedirRepuestacorrecta :: IO String
-pedirRepuestacorrecta = do
+pedirPrediccionCorrecta :: IO String
+pedirPrediccionCorrecta = do
     putStrLn "He fallado! Cuál era la respuesta correcta?"
     getLine
 
 pedirPregunta :: String -> IO String
-pedirPregunta opcion = do 
-    putStrLn $ "Que pregunta distingue a " ++ opcion ++ " de las otras opciones?"
+pedirPregunta prediccionCorrecta = do 
+    putStrLn $ "Que pregunta distingue a " ++ prediccionCorrecta 
+                ++ " de las otras opciones?"
     getLine
 
 pedirRespuesta :: String -> String -> IO String
-pedirRespuesta pregunta respuesta = do 
+pedirRespuesta pregunta prediccion = do 
     putStrLn $ "Cuál es la respuesta a \"" ++ pregunta ++ 
-                "\" para " ++ respuesta ++ "?"
+                "\" para " ++ prediccion ++ "?"
     getLine
-
 ------------------------------------------------------
 
 
@@ -38,48 +38,54 @@ predecir :: Oraculo -> IO Oraculo
 predecir oraculo = do
     return oraculo
 
-showOpciones :: Opciones -> String
-showOpciones ops = P.foldl concatenar (head preguntas) (tail preguntas)
-    where   preguntas = P.map fst (toList ops)
-            concatenar a b = a ++ " / " ++ b
+listaOpciones :: Opciones -> [String]
+listaOpciones ops = P.map fst (toList ops)
+
+showOpciones :: [String] -> String
+showOpciones ops = P.foldl concatenar (head ops) (tail ops)
+    where concatenar a b = a ++ " / " ++ b
 
 
-insertar :: String -> String -> Oraculo -> Oraculo
-insertar op res (Pregunta p ops)  = Pregunta p (insert op (crearOraculo res) ops)
+insertar :: String -> Oraculo -> Oraculo -> Oraculo
+insertar op prediccion (Pregunta p ops)  = Pregunta p (insert op prediccion ops)
 insertar _ _ _= error ("El oraculo no es una pregunta")
 
 
 predecirPregunta :: Oraculo -> IO Oraculo
 predecirPregunta oraculo = do 
     putStrLn $ pregunta oraculo
-    putStrLn $ showOpciones (opciones oraculo)
-    respuesta <- getLine
+    putStrLn $ showOpciones (listaOpciones $ opciones oraculo)
+    respuesta <- obtenerRespuestaValida ("ninguna": (listaOpciones (opciones oraculo)))
     case respuesta of
         "ninguna" -> do
-            respuesta <- pedirRepuestacorrecta
-            putStrLn (pregunta oraculo)
-            opcion <- getLine
-            return (insertar opcion respuesta oraculo)
-        s -> predecir ((opciones oraculo) ! s)
+            prediccionCorrecta <- pedirPrediccionCorrecta
+            opcion <- pedirRespuesta (pregunta oraculo) prediccionCorrecta
+            return (insertar opcion (crearOraculo prediccionCorrecta) oraculo)
+        opcion -> do
+            subOraculo <- predecir (respuesta oraculo opcion)
+            return (insertar opcion subOraculo oraculo)
 
 
-prediccionFallida :: Oraculo -> IO Oraculo
-prediccionFallida oraculo = do
-    respuesta <- pedirRepuestacorrecta
-    pregunta <- (pedirPregunta respuesta)
-    opcionPrediccion <- (pedirRespuesta pregunta (prediccion oraculo))
-    opcionRespuesta  <- (pedirRespuesta pregunta respuesta)
-    return ( ramificar  [opcionPrediccion, opcionRespuesta]
-                        [oraculo, crearOraculo opcionPrediccion]
-                        pregunta )
 
 predecirPrediccion :: Oraculo -> IO Oraculo
 predecirPrediccion oraculo = do
     putStrLn $ "Prediccion" ++ (prediccion oraculo)
-    x <- getLine
+    putStrLn $ showOpciones opcionesSiNo
+    x <- obtenerRespuestaValida opcionesSiNo
     case x of
-        "si" -> return oraculo
-        "no" -> prediccionFallida oraculo
+        "Si" -> return oraculo
+        "No" -> prediccionFallida oraculo
+    where opcionesSiNo = ["Si", "No"]
+
+prediccionFallida :: Oraculo -> IO Oraculo
+prediccionFallida oraculo = do
+    prediccionCorrecta <- pedirPrediccionCorrecta
+    pregunta <- (pedirPregunta prediccionCorrecta)
+    opcionPrediccionOraculo   <- (pedirRespuesta pregunta (prediccion oraculo))
+    opcionPrediccionCorrecta  <- (pedirRespuesta pregunta prediccionCorrecta)
+    return ( ramificar  [opcionPrediccionOraculo, opcionPrediccionCorrecta]
+                        [oraculo, crearOraculo opcionPrediccionCorrecta]
+                        pregunta )
             
 
 ------------------------ Main -----------------
