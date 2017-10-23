@@ -35,8 +35,9 @@ pedirRespuesta pregunta prediccion = do
 
 
 predecir :: Oraculo -> IO Oraculo
-predecir oraculo = do
-    return oraculo
+predecir (Prediccion p)       = predecirPrediccion (Prediccion p)
+predecir (Pregunta p ops)  = predecirPregunta (Pregunta p ops)
+
 
 listaOpciones :: Opciones -> [String]
 listaOpciones ops = P.map fst (toList ops)
@@ -54,9 +55,9 @@ insertar _ _ _= error ("El oraculo no es una pregunta")
 predecirPregunta :: Oraculo -> IO Oraculo
 predecirPregunta oraculo = do 
     putStrLn $ pregunta oraculo
-    putStrLn $ showOpciones (listaOpciones $ opciones oraculo)
-    respuesta <- obtenerRespuestaValida ("ninguna": (listaOpciones (opciones oraculo)))
-    case respuesta of
+    putStrLn $ showOpciones $ (listaOpciones $ opciones oraculo)
+    usuario <- obtenerRespuestaValida ("ninguna": (listaOpciones (opciones oraculo)))
+    case usuario of
         "ninguna" -> do
             prediccionCorrecta <- pedirPrediccionCorrecta
             opcion <- pedirRespuesta (pregunta oraculo) prediccionCorrecta
@@ -69,7 +70,7 @@ predecirPregunta oraculo = do
 
 predecirPrediccion :: Oraculo -> IO Oraculo
 predecirPrediccion oraculo = do
-    putStrLn $ "Prediccion" ++ (prediccion oraculo)
+    putStrLn $ "Prediccion: " ++ (prediccion oraculo)
     putStrLn $ showOpciones opcionesSiNo
     x <- obtenerRespuestaValida opcionesSiNo
     case x of
@@ -81,14 +82,28 @@ prediccionFallida :: Oraculo -> IO Oraculo
 prediccionFallida oraculo = do
     prediccionCorrecta <- pedirPrediccionCorrecta
     pregunta <- (pedirPregunta prediccionCorrecta)
-    opcionPrediccionOraculo   <- (pedirRespuesta pregunta (prediccion oraculo))
     opcionPrediccionCorrecta  <- (pedirRespuesta pregunta prediccionCorrecta)
+    opcionPrediccionOraculo   <- (pedirRespuesta pregunta (prediccion oraculo))
     return ( ramificar  [opcionPrediccionOraculo, opcionPrediccionCorrecta]
-                        [oraculo, crearOraculo opcionPrediccionCorrecta]
+                        [oraculo, crearOraculo prediccionCorrecta]
                         pregunta )
             
 
 ------------------------ Main -----------------
+
+oraculoInicial = Pregunta "Es un lenguaje de programaci\243n?" (fromList [("No",Prediccion "HTML"),("Si",Pregunta "A qu\233 paradigma pertenece?" (fromList [("Funcional",Prediccion "Haskell"),("Imperativo",Pregunta "A qui\233n pertenece el lenguaje?" (fromList [("Microsoft",Prediccion "C#"),("Oracle",Prediccion "Java")])),("L\243gico",Prediccion "Prolog")]))])
+
+
+predecirInfinito :: Oraculo -> IO Oraculo
+predecirInfinito oraculo = do
+    putStrLn "Quiere Imprimir el Oraculo? "
+    imprimir <- getLine
+    case imprimir of
+        "Si" -> putStrLn $ show oraculo
+        otherwise -> return ()
+    nuevoOraculo <- (predecir oraculo)
+    predecirInfinito nuevoOraculo
+
 main = do
-    let z = (singleton 1 'a')
-    putStrLn "hola :)"
+    predecirInfinito oraculoInicial
+    putStrLn "Chao :)"

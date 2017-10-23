@@ -6,7 +6,6 @@ import Prelude as P
 
 data Lca =  Lca String String String | First | Second | None
 
-
 lca :: String -> String -> Oraculo -> Lca
 lca s1 s2 (Prediccion prediccion)
     | prediccion == s1  = First
