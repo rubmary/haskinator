@@ -7,7 +7,7 @@ al usuario. Le permite realizar predicciones sobre un Oraculo
 existente y modificarlo, o empezar un Oraculo desde una primera
 Pediccion.
 -}
-module Main(main) where
+module Haskinator(main) where
 import Oraculo
 import System.Exit
 import System.IO
