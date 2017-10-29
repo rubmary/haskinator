@@ -24,23 +24,51 @@ data Lca =  Lca String String String | First | Second | None
 -- Muestra al usuario una serie de opciones numeradas, mantiene un Oraculo
 -- que se usará para las predicciones, y avisa al usuario cuando
 -- introduce una opción incorrecta.
-menu :: Oraculo -> IO()
-menu oraculoActual = do
+menu :: Maybe Oraculo -> IO()
+menu (Just oraculoActual) = do
         putStrLn "Introduzca una opción."
         putStrLn . unlines $ P.map showChoices choices
         choice <- getLine
-        oraculoNuevo <- case read choice of
-            1 -> crearNuevo
-            2 -> predecir oraculoActual
-            3 -> persistir oraculoActual
-            4 -> cargar
-            5 -> obtenerPreguntaCritica oraculoActual
-            6 -> exitSuccess
-            _ -> do
+        oraculoNuevo <- case validate choice of
+            Just 1 -> crearNuevo
+            Just 2 -> predecir oraculoActual
+            Just 3 -> persistir oraculoActual
+            Just 4 -> cargar
+            Just 5 -> obtenerPreguntaCritica oraculoActual
+            Just 6 -> exitSuccess
+            Nothing -> do
                 putStrLn "Opción incorrecta."
                 return oraculoActual
-        menu oraculoNuevo
+        menu (Just oraculoNuevo)
     where showChoices (i, s) = show i ++ ". " ++ s
+menu Nothing = do
+        putStrLn "Introduzca una opción."
+        putStrLn . unlines $ P.map showChoices choices
+        choice <- getLine
+        case validate choice of
+            Just 1 -> do
+                o <- crearNuevo
+                menu (Just o)
+            Just 4 -> do
+                o <- cargar
+                menu (Just o)
+            Just 6 -> exitSuccess
+            Nothing -> do
+                putStrLn "Opción incorrecta."
+                menu Nothing
+            _ -> do
+                putStrLn "No hay oráculo cargado."
+                menu Nothing
+    where showChoices (i, s) = show i ++ ". " ++ s
+
+validate :: String -> Maybe Int
+validate s = isValid (reads s)
+    where isValid [] = Nothing
+          isValid ((n, _):_) 
+                | (n < 1) || (n > length choices) = Nothing
+                | otherwise = Just n
+
+
 
 -- Opciones numeradas para el menú.
 choices :: [(Int, String)]
@@ -256,4 +284,4 @@ showOpciones ops = P.foldl concatenar (head ops) (tail ops)
 
 -- Ejecuta el menú con un primer oráculo vacío.
 main::IO()
-main = menu $ crearOraculo ""
+main = menu Nothing
