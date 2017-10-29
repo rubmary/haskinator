@@ -149,18 +149,19 @@ predecir (Pregunta p ops)  = predecirPregunta (Pregunta p ops)
 -- De otra forma, la predicción continúa hacia el sub-oráculo necesario.
 predecirPregunta :: Oraculo -> IO Oraculo
 predecirPregunta oraculo = do 
-    putStrLn $ pregunta oraculo
-    putStrLn $ showOpciones $ (listaOpciones $ opciones oraculo)
-    usuario <- obtenerRespuestaValida ("ninguna": (listaOpciones (opciones oraculo)))
-    case usuario of
-        "ninguna" -> do
-            prediccionCorrecta <- pedirPrediccionCorrecta
-            opcion <- pedirRespuesta (pregunta oraculo) prediccionCorrecta
-            return (insertar opcion (crearOraculo prediccionCorrecta) oraculo)
-        opcion -> do
-            subOraculo <- predecir (respuesta oraculo opcion)
-            return (insertar opcion subOraculo oraculo)
-
+        putStrLn $ pregunta oraculo
+        putStrLn $ showOpciones $ lista
+        usuario <- obtenerRespuestaValida ("ninguna": (listaOpciones (opciones oraculo)))
+        case usuario of
+            "ninguna" -> do
+                prediccionCorrecta <- pedirPrediccionCorrecta
+                opcion <- pedirRespuesta lista (pregunta oraculo) prediccionCorrecta
+                return (insertar opcion (crearOraculo prediccionCorrecta) oraculo)
+            opcion -> do
+                subOraculo <- predecir (respuesta oraculo opcion)
+                return (insertar opcion subOraculo oraculo)
+    where
+        lista = listaOpciones $ opciones oraculo
 
 -- Se plantea al usuario una predicción, y este debe decidir si es correcta.
 -- En caso negativo, se le pide la opción correcta y una pregunta que permita discernirla.
@@ -180,8 +181,8 @@ prediccionFallida :: Oraculo -> IO Oraculo
 prediccionFallida oraculo = do
     prediccionCorrecta <- pedirPrediccionCorrecta
     pregunta <- (pedirPregunta prediccionCorrecta)
-    opcionPrediccionCorrecta  <- (pedirRespuesta pregunta prediccionCorrecta)
-    opcionPrediccionOraculo   <- (pedirRespuesta pregunta (prediccion oraculo))
+    opcionPrediccionCorrecta  <- (pedirRespuesta [] pregunta prediccionCorrecta)
+    opcionPrediccionOraculo   <- (pedirRespuesta [opcionPrediccionCorrecta] pregunta (prediccion oraculo))
     return ( ramificar  [opcionPrediccionOraculo, opcionPrediccionCorrecta]
                         [oraculo, crearOraculo prediccionCorrecta]
                         pregunta )
@@ -218,24 +219,28 @@ pedirPregunta prediccionCorrecta = do
     getLine
 
 -- Pide la respuesta a la pregunta para una predicción.
-pedirRespuesta :: String -> String -> IO String
-pedirRespuesta pregunta prediccion = do
+pedirRespuesta :: [String] -> String -> String -> IO String
+pedirRespuesta ops pregunta prediccion = do
     putStrLn $ "Cuál es la respuesta a \"" ++ pregunta ++
                 "\" para " ++ prediccion ++ "?"
-    obtenerOpcionValida
+    obtenerOpcionValida ops
 
 -- Verifica que la opción introducida por el usuario sea correcta.
 -- "ninguna" no es una opción válida pues está reservada para que
 -- el usuario agregue una opción adicional.
-obtenerOpcionValida :: IO String
-obtenerOpcionValida = do
+obtenerOpcionValida :: [String] -> IO String
+obtenerOpcionValida ops = do
     opcion <- getLine
     case opcion of
         "ninguna" -> do
             putStrLn "\"ninguna\" no puede ser respuesta. Intente de nuevo."
-            obtenerOpcionValida
-        _ -> do
-            return opcion
+            obtenerOpcionValida ops
+        _ -> case elem opcion ops of
+            True -> do
+                putStrLn "Ya existe una respuesta con ese nombre."
+                obtenerOpcionValida ops
+            False -> do 
+                return opcion
 
 -- Recibe Opciones y devuelve la lista de cadenas de caracteres
 -- asociada con ellas.
